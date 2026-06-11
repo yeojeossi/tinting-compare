@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>윈도우 필름 성능 비교표</title>
+<style>
+  :root {
+    --bg: #0f1117; --bg2: #181c27; --bg3: #1e2333;
+    --border: #2a2f42; --text: #e8eaf0; --text2: #8b90a0;
+    --accent: #4fc3f7; --gold: #ffd54f;
+    --tag-ok: #1b3a2a; --tag-ok-text: #66bb6a;
+    --tag-warn: #3a2e10; --tag-warn-text: #ffb74d;
+    --tag-bad: #3a1515; --tag-bad-text: #ef5350;
+    --tag-blue: #0d2a3a; --tag-blue-text: #4fc3f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI','Apple SD Gothic Neo',sans-serif; font-size: 13px; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+  .subtitle { color: var(--text2); font-size: 12px; margin-bottom: 20px; line-height: 1.6; }
+  .note-box { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--gold); border-radius: 6px; padding: 10px 14px; margin-bottom: 20px; font-size: 11.5px; color: var(--text2); line-height: 1.8; }
+  .note-box strong { color: var(--gold); }
+  .note-box code { background: var(--bg3); border-radius: 3px; padding: 1px 5px; color: var(--accent); font-size: 11px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
+  .controls label { color: var(--text2); font-size: 12px; margin-right: 4px; }
+  select, input[type=range] { background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: 5px; padding: 4px 8px; font-size: 12px; outline: none; cursor: pointer; }
+  select:hover { border-color: var(--accent); }
+  .vlt-filter { display: flex; align-items: center; gap: 8px; background: var(--bg2); border: 1px solid var(--border); border-radius: 5px; padding: 4px 10px; }
+  .vlt-filter span { color: var(--accent); font-weight: 700; font-size: 12px; min-width: 60px; }
+  .btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text2); border-radius: 5px; padding: 4px 12px; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .btn:hover, .btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+  .summary-bar { display: flex; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 7px; padding: 10px 16px; min-width: 130px; }
+  .stat-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .stat-val { font-size: 20px; font-weight: 700; color: var(--accent); }
+  .stat-sub { font-size: 10px; color: var(--text2); margin-top: 2px; }
+  .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; min-width: 880px; }
+  thead tr { background: var(--bg3); border-bottom: 2px solid var(--accent); }
+  th { padding: 10px 12px; text-align: center; font-size: 11px; font-weight: 600; color: var(--text2); letter-spacing: 0.3px; cursor: pointer; user-select: none; white-space: nowrap; line-height: 1.5; }
+  th:hover { color: var(--accent); }
+  th.sort-asc::after { content: ' ▲'; color: var(--accent); }
+  th.sort-desc::after { content: ' ▼'; color: var(--accent); }
+  th:first-child, th:nth-child(2) { text-align: left; }
+  th.col-film, td.col-film { border-left: 1px dashed #2a3a50; border-right: 1px dashed #2a3a50; background: rgba(79,195,247,0.03); }
+  th.col-tesla, td.col-tesla { border-left: 1px dashed #3a2a10; border-right: 1px dashed #3a2a10; background: rgba(255,213,79,0.03); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: rgba(79,195,247,0.05); }
+  td { padding: 8px 12px; text-align: center; vertical-align: middle; }
+  td:first-child, td:nth-child(2) { text-align: left; }
+  .brand { font-weight: 700; font-size: 12px; color: var(--text); }
+  .product { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .vlt-plain { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 12px; font-weight: 600; background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+  .vlt-est { font-size: 10px; color: var(--tag-warn-text); margin-left: 2px; }
+  .film-vlt { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 12px; font-weight: 700; background: var(--tag-blue); color: var(--tag-blue-text); border: 1px solid rgba(79,195,247,0.2); }
+  .film-vlt-na { font-size: 11px; color: var(--text2); }
+  .est-mark { font-size: 10px; color: var(--tag-warn-text); font-weight: 400; }
+  .tser-cell { min-width: 150px; }
+  .tser-wrap { display: flex; align-items: center; gap: 8px; }
+  .tser-val { font-weight: 700; font-size: 13px; min-width: 32px; text-align: right; }
+  .tser-bar-bg { flex: 1; height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .tser-bar { height: 100%; border-radius: 4px; }
+  .tesla-vlt { display: inline-block; border-radius: 4px; padding: 3px 9px; font-size: 12px; font-weight: 700; min-width: 52px; text-align: center; }
+  .tesla-na { font-size: 11px; color: var(--text2); }
+  .basis-badge { display: inline-block; border-radius: 4px; padding: 2px 7px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+  .basis-ok  { background: var(--tag-ok);   color: var(--tag-ok-text); }
+  .basis-est { background: var(--tag-warn);  color: var(--tag-warn-text); }
+  .basis-eq  { background: #0d2a3a; color: #4fc3f7; }
+  /* 특징 태그 칩 */
+  .tag-chip {
+    display: inline-block;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    margin: 1px 2px 1px 0;
+    white-space: nowrap;
+  }
+  .tag-ceramic  { background: #0d2a1a; color: #69bb8a; border: 1px solid rgba(105,187,138,0.25); }
+  .tag-sputter  { background: #1a1a2e; color: #7986cb; border: 1px solid rgba(121,134,203,0.25); }
+  .tag-multi    { background: #1a2a0d; color: #aed581; border: 1px solid rgba(174,213,129,0.25); }
+  .tag-nonref   { background: #1a1a1a; color: #90a4ae; border: 1px solid rgba(144,164,174,0.2);  }
+  .tag-tin      { background: #2a1a00; color: #ffb74d; border: 1px solid rgba(255,183,77,0.25);  }
+  .tag-spec     { background: #0d1a2a; color: #4fc3f7; border: 1px solid rgba(79,195,247,0.25);  }
+  .tag-nometal  { background: #2a0d2a; color: #ce93d8; border: 1px solid rgba(206,147,216,0.25); }
+  .tag-col { min-width: 100px; }
+
+  .rank { font-weight: 700; font-size: 13px; color: var(--text2); }
+  .rank-1 { color: #ffd700; } .rank-2 { color: #c0c0c0; } .rank-3 { color: #cd7f32; }
+  .footnote { margin-top: 16px; font-size: 11px; color: var(--text2); line-height: 1.9; border-top: 1px solid var(--border); padding-top: 12px; }
+  .footnote span { color: var(--gold); font-weight: 600; }
+  .footnote .ac { color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>🌞 윈도우 필름 성능 비교표</h1>
+<p class="subtitle">기준 유리 통일(3mm Clear Glass 동등 기준) · 레이노 제외 · 전 농도 전수 포함 · 루마만 추정 환산 적용</p>
+
+<div class="note-box">
+  <strong>계산 방법론 및 기준 유리 판정</strong><br>
+  · <strong>필름 단독 VLT 역산</strong>: <code>필름 단독 VLT = 합산 VLT ÷ 기준 유리 VLT</code> (Beer-Lambert 근사, ±2~3% 오차)<br>
+  · <strong>테슬라 시공 후 예상 투과율</strong>: <code>테슬라 유리 VLT(75%) × 필름 단독 VLT</code><br>
+  · <strong>3M Ceramic IR / Crystalline</strong>: TDS 기준유리 6mm Clear <strong>VLT 89%</strong> → 소비자원 기준 3mm Clear VLT 89%와 동일 → <strong>환산 불필요</strong>, 직접 값 사용 (소비자원 실측 Crystalline 70 TSER=50% ↔ 3M TDS TSER=50% 일치로 검증)<br>
+  · <strong>루마 버텍스 900</strong>: 6mm Auto Green(VLT 75%) NFRC 기준 → 소비자원 실증(VERTEX700 시리즈 평균 차이 9%)으로 검증된 <strong>8~10% 차감</strong> 추정 환산. 추정값에는 <span style="color:#ffb74d">(추정)</span> 표기<br>
+  · <strong>도로교통법</strong>: 전면 ≥70% / 측후면 1열 ≥40% | 테슬라 시공 후 41% 이상 → 초록, 40% 이하 → 붉은색 경고
+</div>
+
+<div class="summary-bar" id="summaryBar"></div>
+
+<div class="controls">
+  <div>
+    <label>브랜드 필터:</label>
+    <select id="brandFilter" onchange="applyFilters()">
+      <option value="all">전체</option>
+      <option value="솔라가드">솔라가드 LX</option>
+      <option value="볼텍스">볼텍스 IR</option>
+      <option value="테라룩스">테라룩스 IR</option>
+      <option value="브이쿨">브이쿨 Solitaire</option>
+      <option value="후퍼옵틱">후퍼옵틱 Premium NC</option>
+      <option value="XPEL">XPEL PRIME</option>
+      <option value="3M Ceramic">3M Ceramic IR</option>
+      <option value="3M Crystalline">3M Crystalline</option>
+      <option value="루마">루마 버텍스 900</option>
+    </select>
+  </div>
+  <div class="vlt-filter">
+    <label>테슬라 시공 후 최소 VLT:</label>
+    <input type="range" id="vltSlider" min="0" max="80" step="1" value="0" oninput="updateVltLabel(); applyFilters()">
+    <span id="vltLabel">0% 이상</span>
+  </div>
+  <button class="btn active" id="btnAll"   onclick="setFrontFilter('all')">전체</button>
+  <button class="btn"        id="btnFront" onclick="setFrontFilter('front')">전면 가능 (VLT ≥ 70%)</button>
+  <button class="btn"        id="btnSide"  onclick="setFrontFilter('side')">측면 가능 (VLT ≥ 40%)</button>
+</div>
+
+<div class="table-wrap">
+<table id="mainTable">
+  <thead>
+    <tr>
+      <th onclick="sortTable('rank')" style="text-align:left">순위</th>
+      <th onclick="sortTable('brand')" style="text-align:left">브랜드 / 제품</th>
+      <th class="tag-col">필름 특징</th>
+      <th onclick="sortTable('vlt')">합산 VLT<br><span style="font-size:9px;font-weight:400;color:#6b7080">(가시광선투과율)</span></th>
+      <th onclick="sortTable('filmVlt')" class="col-film">필름 단독 VLT<br><span style="font-size:9px;font-weight:400;color:#4fc3f7">역산 추정값</span></th>
+      <th onclick="sortTable('tser')" class="tser-cell">TSER<br><span style="font-size:9px;font-weight:400;color:#6b7080">(총태양에너지차단율)</span></th>
+      <th onclick="sortTable('teslaVlt')" class="col-tesla">테슬라 시공 후<br><span style="font-size:9px;font-weight:400;color:#ffd54f">예상 가시광선투과율</span></th>
+      <th onclick="sortTable('basis')">비고<br><span style="font-size:9px;font-weight:400;color:#6b7080">(측정 기준 유리)</span></th>
+    </tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+</table>
+</div>
+
+<div class="footnote">
+  <span>* 측정 규격</span>: 솔라가드·볼텍스·테라룩스·브이쿨·후퍼옵틱 → ISO 9050:2003 준거 NFRC / XPEL → EN 410 / 3M → ANSI/NFRC 200<br>
+  <span>† 루마 버텍스 900</span>: 6mm Auto Green(VLT 75%) NFRC 기준 → 한국소비자원 실증(VERTEX700 평균 ▼9%) 근거로 8~10% 차감 추정. <span style="color:#ffb74d">(추정)</span> 표기 항목은 실제값과 ±3~5% 오차 가능<br>
+  <span>‡ 3M 검증</span>: 한국소비자원 2023 시험 결과 — Crystalline 70 TSER 실측 50% = 3M TDS 50% 일치. 6mm Clear(VLT 89%) ≡ 3mm Clear(VLT 89%) 동등 판정<br>
+  <span>§ 도로교통법</span>: 전면 VLT ≥ 70%, 측후면 1열 VLT ≥ 40% (도로교통법 제49조 제1항 제3호) &nbsp;
+  <span class="ac">| 테슬라 시공 후 41% 이상</span>: 초록 &nbsp;<span style="color:#ef5350;font-weight:600">| 40% 이하</span>: 법규 위반 가능 구간
+</div>
+
+<script>
+const TESLA_GLASS = 0.75;
+const GLASS_VLT = { '3mm Clear': 0.83, '6mm Clear(89%)': 0.89, '추정(환산)': 0.75 };
+
+function calcFilmVlt(comboVlt, basis) {
+  const g = GLASS_VLT[basis];
+  if (!g) return null;
+  const f = comboVlt / (g * 100);
+  if (f > 1.02) return null;
+  return Math.round(f * 100);
+}
+function calcTeslaVlt(filmVlt) {
+  if (filmVlt === null || filmVlt === undefined) return null;
+  return Math.round(TESLA_GLASS * filmVlt);
+}
+function getTeslaColor(v) {
+  if (v === null) return null;
+  if (v >= 41) return { bg: '#1b3a2a', text: '#66bb6a', border: 'rgba(102,187,106,0.35)' };
+  if (v >= 36) return { bg: '#3a1a10', text: '#ff7043', border: 'rgba(255,112,67,0.4)'  };
+  if (v >= 31) return { bg: '#3d1510', text: '#ef5350', border: 'rgba(239,83,80,0.4)'   };
+  if (v >= 25) return { bg: '#3f1010', text: '#e53935', border: 'rgba(229,57,53,0.45)'  };
+  if (v >= 18) return { bg: '#400a0a', text: '#c62828', border: 'rgba(198,40,40,0.5)'   };
+  return             { bg: '#420606', text: '#b71c1c', border: 'rgba(183,28,28,0.55)'  };
+}
+function getTserColor(v) {
+  if (v >= 70) return '#66bb6a';
+  if (v >= 60) return '#a5d6a7';
+  if (v >= 50) return '#fff176';
+  if (v >= 40) return '#ffb74d';
+  return '#ef5350';
+}
+
+// est: 추정값 여부 (루마만 true)
+// estFields: 어떤 필드가 추정인지 배열로 지정
+const RAW_BASE = [
+  // 솔라가드 LX
+  {brand:'솔라가드',product:'LX 70',  vlt:72,tser:55,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'솔라가드',product:'LX 55',  vlt:59,tser:56,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'솔라가드',product:'LX 40',  vlt:42,tser:61,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'솔라가드',product:'LX 25',  vlt:23,tser:64,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'솔라가드',product:'LX 15',  vlt:12,tser:65,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  // 볼텍스 IR
+  {brand:'볼텍스',product:'VortexIR 5',  vlt:6, tser:69,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'볼텍스',product:'VortexIR 15', vlt:18,tser:63,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'볼텍스',product:'VortexIR 25', vlt:23,tser:59,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'볼텍스',product:'VortexIR 30', vlt:32,tser:57,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'볼텍스',product:'VortexIR 45', vlt:47,tser:49,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  // 테라룩스 IR
+  {brand:'테라룩스',product:'IR 5%',  vlt:5, tser:71,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'테라룩스',product:'IR 15%', vlt:15,tser:67,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'테라룩스',product:'IR 22%', vlt:22,tser:66,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'테라룩스',product:'IR 27%', vlt:27,tser:66,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'테라룩스',product:'IR 30%', vlt:32,tser:64,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'테라룩스',product:'IR 50%', vlt:51,tser:55,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  // 브이쿨
+  {brand:'브이쿨',product:'VK 70',vlt:71,tser:55,basis:'3mm Clear',est:false,tags:['스퍼터링','스펙트럼선택']},
+  {brand:'브이쿨',product:'VK 55',vlt:57,tser:60,basis:'3mm Clear',est:false,tags:['스퍼터링','스펙트럼선택']},
+  {brand:'브이쿨',product:'VK 40',vlt:46,tser:62,basis:'3mm Clear',est:false,tags:['스퍼터링','스펙트럼선택']},
+  {brand:'브이쿨',product:'VK 30',vlt:36,tser:66,basis:'3mm Clear',est:false,tags:['스퍼터링','스펙트럼선택']},
+  {brand:'브이쿨',product:'VK 10',vlt:13,tser:74,basis:'3mm Clear',est:false,tags:['스퍼터링','스펙트럼선택']},
+  // 후퍼옵틱
+  {brand:'후퍼옵틱',product:'Premium NC 05',  vlt:6, tser:77,basis:'3mm Clear',est:false,tags:['나노세라믹','TiN 이중층']},
+  {brand:'후퍼옵틱',product:'Premium NC 15',  vlt:15,tser:75,basis:'3mm Clear',est:false,tags:['나노세라믹','TiN 이중층']},
+  {brand:'후퍼옵틱',product:'Premium NC 30',  vlt:30,tser:65,basis:'3mm Clear',est:false,tags:['나노세라믹','TiN 이중층']},
+  {brand:'후퍼옵틱',product:'Premium NC 40',  vlt:42,tser:57,basis:'3mm Clear',est:false,tags:['나노세라믹','TiN 이중층']},
+  {brand:'후퍼옵틱',product:'Premium NC 70',  vlt:71,tser:52,basis:'3mm Clear',est:false,tags:['나노세라믹','TiN 이중층']},
+  {brand:'후퍼옵틱',product:'Nano Ceramic 50',vlt:52,tser:58,basis:'3mm Clear',est:false,tags:['나노세라믹']},
+  {brand:'후퍼옵틱',product:'Nano Ceramic 60',vlt:60,tser:43,basis:'3mm Clear',est:false,tags:['나노세라믹']},
+  // XPEL XR PLUS
+  {brand:'XPEL',product:'XR PLUS 5',  vlt:5, tser:71,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'XPEL',product:'XR PLUS 15', vlt:12,tser:69,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'XPEL',product:'XR PLUS 20', vlt:18,tser:66,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'XPEL',product:'XR PLUS 30', vlt:31,tser:61,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'XPEL',product:'XR PLUS 35', vlt:38,tser:59,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'XPEL',product:'XR PLUS 45', vlt:45,tser:58,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'XPEL',product:'XR PLUS 55', vlt:57,tser:53,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  {brand:'XPEL',product:'XR PLUS 70', vlt:67,tser:52,basis:'3mm Clear',est:false,tags:['나노세라믹','비반사']},
+  // 3M Ceramic IR — 6mm Clear(89%) ≡ 3mm Clear(89%) 동등 검증됨, 추정 불필요
+  {brand:'3M Ceramic',product:'Ceramic IR 5',  vlt:6, tser:63,basis:'6mm Clear(89%)',est:false,tags:['나노세라믹','비반사']},
+  {brand:'3M Ceramic',product:'Ceramic IR 15', vlt:19,tser:59,basis:'6mm Clear(89%)',est:false,tags:['나노세라믹','비반사']},
+  {brand:'3M Ceramic',product:'Ceramic IR 25', vlt:31,tser:57,basis:'6mm Clear(89%)',est:false,tags:['나노세라믹','비반사']},
+  {brand:'3M Ceramic',product:'Ceramic IR 30', vlt:37,tser:55,basis:'6mm Clear(89%)',est:false,tags:['나노세라믹','비반사']},
+  {brand:'3M Ceramic',product:'Ceramic IR 35', vlt:45,tser:52,basis:'6mm Clear(89%)',est:false,tags:['나노세라믹','비반사']},
+  {brand:'3M Ceramic',product:'Ceramic IR 50', vlt:60,tser:47,basis:'6mm Clear(89%)',est:false,tags:['나노세라믹','비반사']},
+  {brand:'3M Ceramic',product:'Ceramic IR 70', vlt:78,tser:41,basis:'6mm Clear(89%)',est:false,tags:['나노세라믹','비반사']},
+  // 3M Crystalline — 동일
+  {brand:'3M Crystalline',product:'Crystalline 20',vlt:21,tser:63,basis:'6mm Clear(89%)',est:false,tags:['다층나노','비금속']},
+  {brand:'3M Crystalline',product:'Crystalline 40',vlt:39,tser:60,basis:'6mm Clear(89%)',est:false,tags:['다층나노','비금속']},
+  {brand:'3M Crystalline',product:'Crystalline 50',vlt:50,tser:56,basis:'6mm Clear(89%)',est:false,tags:['다층나노','비금속']},
+  {brand:'3M Crystalline',product:'Crystalline 60',vlt:60,tser:53,basis:'6mm Clear(89%)',est:false,tags:['다층나노','비금속']},
+  {brand:'3M Crystalline',product:'Crystalline 70',vlt:69,tser:50,basis:'6mm Clear(89%)',est:false,tags:['다층나노','비금속']},
+  {brand:'3M Crystalline',product:'Crystalline 80',vlt:77,tser:44,basis:'6mm Clear(89%)',est:false,tags:['다층나노','비금속']},
+  {brand:'3M Crystalline',product:'Crystalline 90',vlt:86,tser:34,basis:'6mm Clear(89%)',est:false,tags:['다층나노','비금속']},
+  // 루마 버텍스 900 — 추정(환산), 모든 수치에 (추정) 표기
+  {brand:'루마',product:'VERTEX 900-05',vlt:5, tser:61,basis:'추정(환산)',est:true,tags:['나노세라믹','비반사']},
+  {brand:'루마',product:'VERTEX 900-15',vlt:15,tser:59,basis:'추정(환산)',est:true,tags:['나노세라믹','비반사']},
+  {brand:'루마',product:'VERTEX 900-25',vlt:25,tser:56,basis:'추정(환산)',est:true,tags:['나노세라믹','비반사']},
+  {brand:'루마',product:'VERTEX 900-30',vlt:31,tser:54,basis:'추정(환산)',est:true,tags:['나노세라믹','비반사']},
+  {brand:'루마',product:'VERTEX 900-40',vlt:40,tser:50,basis:'추정(환산)',est:true,tags:['나노세라믹','비반사']},
+  {brand:'루마',product:'VERTEX 900-50',vlt:52,tser:48,basis:'추정(환산)',est:true,tags:['나노세라믹','비반사']},
+  {brand:'루마',product:'VERTEX 900-80',vlt:81,tser:41,basis:'추정(환산)',est:true,tags:['나노세라믹','비반사']},
+];
+
+const RAW = RAW_BASE.map(r => {
+  const fv = calcFilmVlt(r.vlt, r.basis);
+  return { ...r, filmVlt: fv, teslaVlt: calcTeslaVlt(fv) };
+});
+
+let sortKey='tser', sortDir='desc', frontFilter='all';
+
+function updateSummary(data) {
+  const total=data.length;
+  const maxTser=Math.max(...data.map(d=>d.tser));
+  const top=data.filter(d=>d.tser===maxTser);
+  const frontOk=data.filter(d=>d.vlt>=70).length;
+  const avg=(data.reduce((a,b)=>a+b.tser,0)/total).toFixed(1);
+  document.getElementById('summaryBar').innerHTML=`
+    <div class="stat-card"><div class="stat-label">표시 제품 수</div><div class="stat-val">${total}</div><div class="stat-sub">개 라인업</div></div>
+    <div class="stat-card"><div class="stat-label">최고 TSER</div><div class="stat-val" style="color:#66bb6a">${maxTser}%</div><div class="stat-sub">${top.map(d=>d.brand+' '+d.product).join(', ')}</div></div>
+    <div class="stat-card"><div class="stat-label">전면 시공 가능</div><div class="stat-val" style="color:#ffd54f">${frontOk}</div><div class="stat-sub">합산 VLT ≥ 70%</div></div>
+    <div class="stat-card"><div class="stat-label">평균 TSER</div><div class="stat-val" style="color:#4fc3f7">${avg}%</div><div class="stat-sub">표시 제품 기준</div></div>`;
+}
+
+// (추정) 마크 HTML
+const EST = `<span class="est-mark">(추정)</span>`;
+
+function renderTable() {
+  const brandVal=document.getElementById('brandFilter').value;
+  const teslaMin=parseInt(document.getElementById('vltSlider').value);
+  let data=[...RAW];
+  if(brandVal!=='all') data=data.filter(d=>d.brand===brandVal);
+  data=data.filter(d=>d.teslaVlt===null||d.teslaVlt>=teslaMin);
+  if(frontFilter==='front') data=data.filter(d=>d.vlt>=70);
+  if(frontFilter==='side')  data=data.filter(d=>d.vlt>=40);
+
+  data.sort((a,b)=>{
+    let va=a[sortKey],vb=b[sortKey];
+    if(va===null||va===undefined) va=sortDir==='asc'?9999:-1;
+    if(vb===null||vb===undefined) vb=sortDir==='asc'?9999:-1;
+    if(typeof va==='string') return sortDir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+    return sortDir==='asc'?va-vb:vb-va;
+  });
+
+  updateSummary(data);
+  const tbody=document.getElementById('tableBody');
+  tbody.innerHTML='';
+
+  data.forEach((row,idx)=>{
+    const rank=idx+1;
+    let rankClass='rank',rankStr=String(rank);
+    if(sortKey==='tser'&&sortDir==='desc'){
+      if(rank===1){rankClass='rank rank-1';rankStr='🥇';}
+      else if(rank===2){rankClass='rank rank-2';rankStr='🥈';}
+      else if(rank===3){rankClass='rank rank-3';rankStr='🥉';}
+    }
+
+    const e=row.est; // 루마만 true
+    const barColor=getTserColor(row.tser);
+    const barWidth=Math.round((row.tser/85)*100);
+
+    // 비고 배지 — 기준 유리 VLT 농도 포함
+    const basisVlt = {
+      '3mm Clear':      '3mm Clear (83%)',
+      '6mm Clear(89%)': '6mm Clear (89%)',
+      '추정(환산)':      '6mm Green (75%) 추정'
+    };
+    const basisDisp = basisVlt[row.basis] || row.basis;
+    let basisClass, basisLabel;
+    if(e){ basisClass='basis-est'; basisLabel='⚠ '+basisDisp; }
+    else if(row.basis==='6mm Clear(89%)'){ basisClass='basis-eq'; basisLabel='≡ '+basisDisp; }
+    else { basisClass='basis-ok'; basisLabel='✓ '+basisDisp; }
+
+    // 필름 특징 태그
+    const tagClassMap = {
+      '나노세라믹':   'tag-ceramic',
+      'TiN 이중층':  'tag-tin',
+      '스퍼터링':    'tag-sputter',
+      '스펙트럼선택': 'tag-spec',
+      '다층나노':    'tag-multi',
+      '비반사':      'tag-nonref',
+      '비금속':      'tag-nometal',
+    };
+    const tagsHtml = (row.tags||[]).map(t =>
+      `<span class="tag-chip ${tagClassMap[t]||'tag-nonref'}">${t}</span>`
+    ).join('');
+
+    // 합산 VLT — 추정이면 (추정) 붙임
+    const vltHtml=`<span class="vlt-plain">${row.vlt}%${e?`<span class="est-mark">(추정)</span>`:''}</span>`;
+
+    // 필름 단독 VLT
+    let filmHtml;
+    if(row.filmVlt===null||row.filmVlt===undefined){
+      filmHtml=`<span class="film-vlt-na">N/A</span>`;
+    } else {
+      filmHtml=`<span class="film-vlt">${row.filmVlt}%${e?EST:''}</span>`;
+    }
+
+    // TSER
+    const tserHtml=`<div class="tser-wrap">
+      <span class="tser-val" style="color:${barColor}">${row.tser}%${e?EST:''}</span>
+      <div class="tser-bar-bg"><div class="tser-bar" style="width:${barWidth}%;background:${barColor}"></div></div>
+    </div>`;
+
+    // 테슬라 VLT
+    let teslaHtml;
+    if(row.teslaVlt===null||row.teslaVlt===undefined){
+      teslaHtml=`<span class="tesla-na">N/A</span>`;
+    } else {
+      const c=getTeslaColor(row.teslaVlt);
+      const lawNote=row.teslaVlt<40?' ⚠':'';
+      teslaHtml=`<span class="tesla-vlt" style="background:${c.bg};color:${c.text};border:1px solid ${c.border}">${row.teslaVlt}%${e?`<span style="font-size:9px;font-weight:400">(추정)</span>`:''}${lawNote}</span>`;
+    }
+
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><span class="${rankClass}">${rankStr}</span></td>
+      <td><div class="brand">${row.brand}</div><div class="product">${row.product}</div></td>
+      <td>${tagsHtml}</td>
+      <td>${vltHtml}</td>
+      <td class="col-film">${filmHtml}</td>
+      <td class="tser-cell">${tserHtml}</td>
+      <td class="col-tesla">${teslaHtml}</td>
+      <td><span class="basis-badge ${basisClass}">${basisLabel}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function sortTable(key){
+  if(sortKey===key) sortDir=sortDir==='desc'?'asc':'desc';
+  else{sortKey=key;sortDir=(key==='brand'||key==='basis')?'asc':'desc';}
+  renderTable();
+}
+
+// 필름 단독 VLT 기준 TSER 정렬
+// 1차: 필름 단독 VLT 오름차순 (어두운 필름 먼저)
+//   단, ±3% 허용오차 내 같은 구간으로 묶어 동일 농도군 처리
+// 2차: 같은 구간 내 TSER 내림차순 (차단율 높을수록 상위)
+function sortByFilmVltTser(data) {
+  // 각 항목에 구간 키 부여 (3% 반올림 버킷)
+  function bucket(fv) {
+    if (fv === null || fv === undefined) return 9999;
+    return Math.round(fv / 3) * 3;
+  }
+  return [...data].sort((a, b) => {
+    const ba = bucket(a.filmVlt);
+    const bb = bucket(b.filmVlt);
+    if (ba !== bb) return ba - bb;       // 1차: 필름 VLT 구간 오름
+    return b.tser - a.tser;              // 2차: TSER 내림
+  });
+}
+function applyFilters(){renderTable();}
+function updateVltLabel(){document.getElementById('vltLabel').textContent=document.getElementById('vltSlider').value+'% 이상';}
+function setFrontFilter(f){
+  frontFilter=f;
+  document.querySelectorAll('.btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById({all:'btnAll',front:'btnFront',side:'btnSide'}[f]).classList.add('active');
+  renderTable();
+}
+renderTable();
+</script>
+</body>
+</html>
